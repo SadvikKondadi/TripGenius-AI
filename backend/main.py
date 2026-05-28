@@ -6,8 +6,6 @@ from dotenv import load_dotenv
 import google.generativeai as genai
 import requests
 import os
-import json
-import re
 import hashlib
 from datetime import datetime
 
@@ -57,7 +55,7 @@ def register_user(data: AuthRequest):
         if existing:
             return {
                 "success": False,
-                "message": "User already exists"
+                "message": "User already exists",
             }
 
         session.run(
@@ -76,7 +74,7 @@ def register_user(data: AuthRequest):
     return {
         "success": True,
         "message": "Registration successful",
-        "email": email
+        "email": email,
     }
 
 
@@ -98,13 +96,13 @@ def login_user(data: AuthRequest):
         if not user:
             return {
                 "success": False,
-                "message": "Invalid email or password"
+                "message": "Invalid email or password",
             }
 
     return {
         "success": True,
         "message": "Login successful",
-        "email": email
+        "email": email,
     }
 
 
@@ -125,7 +123,7 @@ def reset_password(data: AuthRequest):
         if not existing:
             return {
                 "success": False,
-                "message": "Email not registered"
+                "message": "Email not registered",
             }
 
         session.run(
@@ -139,12 +137,14 @@ def reset_password(data: AuthRequest):
 
     return {
         "success": True,
-        "message": "Password reset successful"
+        "message": "Password reset successful",
     }
 
 
 def search_pexels_image(query):
-    headers = {"Authorization": PEXELS_API_KEY}
+    headers = {
+        "Authorization": PEXELS_API_KEY,
+    }
 
     try:
         response = requests.get(
@@ -169,16 +169,10 @@ def search_pexels_image(query):
     return "https://images.pexels.com/photos/346885/pexels-photo-346885.jpeg"
 
 
-def clean_json_response(text):
-    text = text.strip()
-    text = re.sub(r"```json", "", text)
-    text = re.sub(r"```", "", text)
-    return text.strip()
-
-
 def build_fallback_trip(destination, days, budget, food, interests):
     total_days = int(days) if str(days).isdigit() else 3
     interest_list = [i.strip() for i in interests.split(",") if i.strip()]
+
     day_cards = []
 
     for i in range(1, total_days + 1):
@@ -191,9 +185,9 @@ def build_fallback_trip(destination, days, budget, food, interests):
         day_cards.append(
             {
                 "day": f"Day {i}",
-                "title": f"{destination} {interest.title()} Experience",
-                "summary": f"Explore {interest} in {destination} with food, sightseeing, and local culture.",
-                "route": f"Hotel → {interest.title()} Spot → Local Food → Evening Walk",
+                "title": f"{destination} {interest.title()}",
+                "summary": f"Explore {interest} in {destination}.",
+                "route": f"Hotel → {interest.title()} → Food Area → Evening Spot",
                 "image_query": f"{destination} {interest} travel",
             }
         )
@@ -211,29 +205,29 @@ def build_fallback_trip(destination, days, budget, food, interests):
 
 ## Recommended Hotels
 
-- **Budget Hotel:** Stay near the main tourist area for easy transport.
-- **Mid-range Hotel:** Choose a hotel close to metro, train, or central attractions.
-- **Comfort Stay:** Pick a hotel near food streets and major sightseeing points.
+- Choose a hotel near the main tourist area.
+- Stay close to public transport for easier travel.
+- Pick an area near restaurants, markets, and attractions.
 
 ## Budget Breakdown
 
-- **Hotels:** 40% of total budget
-- **Food:** 20% of total budget
-- **Transport:** 15% of total budget
-- **Attractions:** 15% of total budget
-- **Shopping/Miscellaneous:** 10% of total budget
+- **Hotels:** Around 40% of the budget
+- **Food:** Around 20% of the budget
+- **Transport:** Around 15% of the budget
+- **Attractions:** Around 15% of the budget
+- **Shopping/Miscellaneous:** Around 10% of the budget
 
 ## Transportation Guide
 
-- Use local metro, trains, taxis, or ride-share apps depending on the city.
-- Group nearby places together to save time and money.
-- Keep evenings close to your hotel area.
+- Use local public transport when available.
+- Keep nearby attractions grouped together.
+- Use taxis or ride-share apps for late-night travel.
 
 ## Food Recommendations
 
 - Try local food in **{destination}**.
-- Include your preference: **{food}**.
-- Choose restaurants near tourist areas and local markets.
+- Include your food preference: **{food}**.
+- Choose restaurants close to tourist areas and local markets.
 
 ## Day-wise Itinerary
 """
@@ -243,10 +237,10 @@ def build_fallback_trip(destination, days, budget, food, interests):
 
 ### {card["day"]}: {card["title"]}
 
-- **Morning:** Start from your hotel and visit a famous place related to this day.
-- **Afternoon:** Explore nearby attractions, markets, or scenic areas.
+- **Morning:** Start from your hotel and visit a popular place related to **{card["title"]}**.
+- **Afternoon:** Explore nearby attractions, markets, scenic areas, or cultural spots.
 - **Evening:** Try local food and enjoy an evening walk.
-- **Estimated Daily Cost:** Depends on hotel, tickets, food, and transport choices.
+- **Estimated Daily Cost:** Depends on hotel, attraction tickets, food, and transport.
 """
 
     itinerary += """
@@ -254,7 +248,7 @@ def build_fallback_trip(destination, days, budget, food, interests):
 ## Hidden Gems
 
 - Explore local neighborhoods.
-- Visit smaller markets and scenic viewpoints.
+- Visit smaller markets and viewpoints.
 - Try authentic local food spots.
 
 ## Travel Tips
@@ -266,10 +260,36 @@ def build_fallback_trip(destination, days, budget, food, interests):
 
 ## Final Estimated Total Cost
 
-- Your final cost depends on hotel category, transport choices, food, and attraction tickets.
+- Final cost depends on hotel category, transport choices, food, and attraction tickets.
 """
 
     return itinerary, day_cards
+
+
+def create_day_cards(destination, days, interests):
+    total_days = int(days) if str(days).isdigit() else 3
+    interest_list = [i.strip() for i in interests.split(",") if i.strip()]
+
+    day_cards = []
+
+    for i in range(1, total_days + 1):
+        interest = (
+            interest_list[(i - 1) % len(interest_list)]
+            if interest_list
+            else "travel"
+        )
+
+        day_cards.append(
+            {
+                "day": f"Day {i}",
+                "title": f"{destination} {interest.title()}",
+                "summary": f"Explore {interest} in {destination} with sightseeing, food, and local experiences.",
+                "route": f"Hotel → {interest.title()} → Food Area → Evening Spot",
+                "image_query": f"{destination} {interest} travel",
+            }
+        )
+
+    return day_cards
 
 
 def save_trip_to_neo4j(
@@ -380,7 +400,7 @@ def save_trip_to_neo4j(
 @app.get("/")
 def home():
     return {
-        "message": "AI GraphRAG Travel Planner Backend Running"
+        "message": "AI GraphRAG Travel Planner Backend Running",
     }
 
 
@@ -413,51 +433,36 @@ def plan_trip(data: dict):
     prompt = f"""
 You are a premium AI travel planner.
 
-Generate a destination-specific travel plan for ANY location in the world.
+Create a detailed, destination-specific travel itinerary in clean Markdown.
 
-User details:
-Destination: {destination}
-Days: {days}
-Budget: {budget}
-Food Preference: {food}
-Interests: {interests}
+User Details:
+- Destination: {destination}
+- Days: {days}
+- Budget: {budget}
+- Food Preference: {food}
+- Interests: {interests}
 
-Neo4j graph data:
+Neo4j Graph Data:
 {places}
 
-Return ONLY valid JSON. No markdown outside JSON. No code fences.
-
-JSON format:
-{{
-  "itinerary_markdown": "clean markdown itinerary here",
-  "day_cards": [
-    {{
-      "day": "Day 1",
-      "title": "specific day title",
-      "summary": "short day summary",
-      "route": "Hotel → Specific Place → Food Area → Evening Spot",
-      "image_query": "specific Pexels image search query"
-    }}
-  ]
-}}
-
-Rules:
-- The itinerary must be specific to {destination}.
-- Day cards must match the itinerary exactly.
-- Image queries must be specific places or experiences from {destination}.
-- Do not use generic words only.
-- Do not suggest wrong activities for the destination.
-- Create exactly {days} day cards if possible.
-- Use Markdown inside itinerary_markdown.
-- Do not create markdown tables.
+Very Important Rules:
+- Return ONLY Markdown.
+- Do NOT return JSON.
+- Do NOT use code blocks.
+- Do NOT use generic phrases.
+- Mention real hotels, real areas, real attractions, real transport options, and realistic budget estimates.
+- Make the itinerary specific to {destination}.
+- Match the itinerary with the user's interests.
 - Include hotel/accommodation recommendations.
 - Include budget breakdown.
 - Include transportation guide.
-- Include local food recommendations.
-- Include estimated total cost.
-- Include hidden gems and travel tips.
+- Include food recommendations.
+- Include day-wise itinerary.
+- Include hidden gems.
+- Include travel tips.
+- Include final estimated total cost.
 
-The itinerary_markdown must use this exact structure:
+Use this exact structure:
 
 # {days}-Day {destination} Travel Plan
 
@@ -469,14 +474,14 @@ The itinerary_markdown must use this exact structure:
 - Travel Style:
 
 ## Recommended Hotels
-Give 3 hotel recommendations:
+Give 3 real hotel recommendations with:
 - hotel name
 - area
 - approximate cost
 - why recommended
 
 ## Budget Breakdown
-Use bullets only:
+Use bullets:
 - Hotels:
 - Food:
 - Transport:
@@ -488,13 +493,13 @@ Use bullets only:
 Include:
 - airport transport
 - local transport
-- metro/train/taxi recommendations
+- train/metro/taxi recommendations
 - daily travel tips
 
 ## Food Recommendations
 Include:
 - famous local dishes
-- recommended restaurants or food areas
+- recommended food streets/areas/restaurants
 - Indian food availability if requested
 
 ## Day-wise Itinerary
@@ -521,28 +526,16 @@ Give approximate total trip spending.
         response = model.generate_content(prompt)
         print("Gemini response received")
 
-        raw_text = clean_json_response(response.text)
+        itinerary = response.text
 
-        try:
-            parsed = json.loads(raw_text)
+        if not itinerary or len(itinerary.strip()) < 100:
+            raise Exception("Gemini returned empty or too short response")
 
-            itinerary = parsed.get("itinerary_markdown", "")
-            day_cards = parsed.get("day_cards", [])
-
-            if not itinerary or not day_cards:
-                raise Exception("Empty itinerary or day cards")
-
-        except Exception as json_error:
-            print("JSON Parse Error:", json_error)
-            print("Raw Gemini Output:", raw_text)
-
-            itinerary, day_cards = build_fallback_trip(
-                destination,
-                days,
-                budget,
-                food,
-                interests,
-            )
+        day_cards = create_day_cards(
+            destination,
+            days,
+            interests,
+        )
 
     except Exception as e:
         print("Gemini Error:", e)
@@ -554,7 +547,6 @@ Give approximate total trip spending.
             food,
             interests,
         )
-    
 
     for card in day_cards:
         image_query = card.get("image_query", f"{destination} travel")
@@ -615,7 +607,9 @@ def graph_data():
         result = session.run(query)
         graph = [record.data() for record in result]
 
-    return {"graph": graph}
+    return {
+        "graph": graph,
+    }
 
 
 @app.get("/search-history")
@@ -639,7 +633,9 @@ def search_history():
         result = session.run(query)
         searches = [record.data() for record in result]
 
-    return {"searches": searches}
+    return {
+        "searches": searches,
+    }
 
 
 @app.get("/health")
