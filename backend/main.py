@@ -66,71 +66,97 @@ def clean_json_response(text):
 
 
 def build_fallback_trip(destination, days, budget, food, interests):
+    total_days = int(days) if str(days).isdigit() else 3
     interest_list = [i.strip() for i in interests.split(",") if i.strip()]
 
     day_cards = []
 
-    total_days = int(days) if str(days).isdigit() else 3
-
     for i in range(1, total_days + 1):
-        interest = interest_list[(i - 1) % len(interest_list)] if interest_list else "local attractions"
+        interest = (
+            interest_list[(i - 1) % len(interest_list)]
+            if interest_list
+            else "local attractions"
+        )
 
         day_cards.append(
             {
                 "day": f"Day {i}",
                 "title": f"{destination} {interest.title()} Experience",
-                "summary": f"Explore {interest} in {destination} with local food, sightseeing, and cultural experiences.",
+                "summary": f"Explore {interest} in {destination} with food, sightseeing, and local culture.",
                 "route": f"Hotel → {interest.title()} Spot → Local Food → Evening Walk",
                 "image_query": f"{destination} {interest} travel",
             }
         )
 
     itinerary = f"""
-## 🌍 Trip Overview
+# {total_days}-Day {destination} Travel Plan
 
-- Destination: **{destination}**
-- Duration: **{days} days**
-- Budget: **{budget}**
-- Food Preference: **{food}**
-- Interests: **{interests}**
+## Trip Overview
 
-## 🗺️ Day-wise Itinerary
+- **Destination:** {destination}
+- **Total Days:** {days}
+- **Estimated Budget:** {budget}
+- **Food Preference:** {food}
+- **Interests:** {interests}
 
+## Recommended Hotels
+
+- **Budget Hotel:** Stay near the main tourist area for easy transport.
+- **Mid-range Hotel:** Choose a hotel close to metro, train, or central attractions.
+- **Comfort Stay:** Pick a hotel near food streets and major sightseeing points.
+
+## Budget Breakdown
+
+- **Hotels:** 40% of total budget
+- **Food:** 20% of total budget
+- **Transport:** 15% of total budget
+- **Attractions:** 15% of total budget
+- **Shopping/Miscellaneous:** 10% of total budget
+
+## Transportation Guide
+
+- Use local metro, trains, taxis, or ride-share apps depending on the city.
+- Group nearby places together to save time and money.
+- Keep evenings close to your hotel area.
+
+## Food Recommendations
+
+- Try local food in **{destination}**.
+- Include your preference: **{food}**.
+- Choose restaurants near tourist areas and local markets.
+
+## Day-wise Itinerary
 """
 
     for card in day_cards:
         itinerary += f"""
+
 ### {card["day"]}: {card["title"]}
-- Morning: Start from your hotel and visit a popular place related to **{card["title"]}**.
-- Afternoon: Explore nearby attractions, food streets, markets, or scenic spots.
-- Evening: Relax, enjoy local food, and capture memories.
+
+- **Morning:** Start from your hotel and visit a famous place related to this day.
+- **Afternoon:** Explore nearby attractions, markets, or scenic areas.
+- **Evening:** Try local food and enjoy an evening walk.
+- **Estimated Daily Cost:** Depends on hotel, tickets, food, and transport choices.
 """
 
-    itinerary += f"""
+    itinerary += """
 
-## 🍽️ Food Recommendations
+## Hidden Gems
 
-- Try local food in **{destination}**.
-- Include your preference: **{food}**.
-- Pick restaurants near your stay area.
+- Explore local neighborhoods.
+- Visit smaller markets and scenic viewpoints.
+- Try authentic local food spots.
 
-## 📸 Must-Visit Spots
+## Travel Tips
 
-- Famous landmarks in **{destination}**
-- Local markets
-- Scenic viewpoints
-- Cultural attractions
-- Food streets
+- Keep your documents and wallet safe.
+- Book popular attractions early.
+- Keep extra money for transport and emergencies.
+- Avoid rushing too many places in one day.
 
-## 🚕 Route Tips
+## Final Estimated Total Cost
 
-- Group nearby places together.
-- Keep evening activities close to your hotel.
-- Use public transport, local taxis, or guided tours depending on the location.
-
-## ✨ Final Recommendation
-
-- Keep your schedule flexible and focus on experiences that match your interests.
+- Your final cost depends on hotel category, transport choices, food, and attraction tickets.
 """
 
     return itinerary, day_cards
@@ -139,7 +165,6 @@ def build_fallback_trip(destination, days, budget, food, interests):
 def save_trip_to_neo4j(destination, days, budget, food, interests, itinerary, day_cards):
     search_id = f"{destination}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
     created_at = datetime.now().isoformat()
-
     interest_list = [i.strip() for i in interests.split(",") if i.strip()]
 
     with driver.session() as session:
@@ -283,17 +308,86 @@ JSON format:
 
 Rules:
 - The itinerary must be specific to {destination}.
-- Day cards must match the itinerary.
+- Day cards must match the itinerary exactly.
 - Image queries must be specific places or experiences from {destination}.
 - Do not use generic words only.
 - Do not suggest wrong activities for the destination.
-- If destination is India, use places like Taj Mahal, India Gate, Jaipur, Kerala, Goa, Varanasi depending on interests.
-- If destination is Switzerland, use Alps, Interlaken, Lucerne, Zermatt, lakes, scenic trains, snow, hiking.
-- If destination is Sri Lanka, use Sigiriya, Galle, Ella, Kandy, Mirissa, Yala, tea plantations.
-- If destination is Dubai, use Burj Khalifa, Desert Safari, Dubai Marina, Palm Jumeirah, Dubai Mall.
 - Create exactly {days} day cards if possible.
 - Use Markdown inside itinerary_markdown.
 - Do not create markdown tables.
+- Include hotel/accommodation recommendations.
+- Include budget breakdown.
+- Include transportation guide.
+- Include local food recommendations.
+- Include estimated total cost.
+- Include hidden gems and travel tips.
+
+The itinerary_markdown must use this exact structure:
+
+# {days}-Day {destination} Travel Plan
+
+## Trip Overview
+- Destination:
+- Total Days:
+- Estimated Budget:
+- Best Time to Visit:
+- Travel Style:
+
+## Recommended Hotels
+Give 3 hotel recommendations:
+- hotel name
+- area
+- approximate cost
+- why recommended
+
+## Budget Breakdown
+Use bullets only:
+- Hotels:
+- Food:
+- Transport:
+- Attractions:
+- Shopping:
+- Miscellaneous:
+
+## Transportation Guide
+Include:
+- airport transport
+- local transport
+- metro/train/taxi recommendations
+- daily travel tips
+
+## Food Recommendations
+Include:
+- famous local dishes
+- recommended restaurants or food areas
+- Indian food availability if requested
+
+## Day-wise Itinerary
+For every day include:
+- Morning
+- Afternoon
+- Evening
+- Nearby attractions
+- Food suggestions
+- Estimated daily cost
+
+## Hidden Gems
+Mention less touristy places.
+
+## Travel Tips
+Include safety, money saving, local etiquette, and useful apps.
+
+## Final Estimated Total Cost
+Give approximate total trip spending.
+
+Destination-specific examples:
+- India: Taj Mahal, India Gate, Jaipur, Kerala, Goa, Varanasi depending on interests.
+- Japan: Tokyo, Kyoto, Osaka, Mount Fuji, Hakone, Shibuya, Akihabara, bullet trains.
+- Switzerland: Alps, Interlaken, Lucerne, Zermatt, lakes, scenic trains, snow, hiking.
+- Sri Lanka: Sigiriya, Galle, Ella, Kandy, Mirissa, Yala, tea plantations.
+- Dubai: Burj Khalifa, Desert Safari, Dubai Marina, Palm Jumeirah, Dubai Mall.
+- Thailand: Bangkok, Phuket, Krabi, Chiang Mai, temples, beaches, islands, night markets.
+- Australia: Sydney Opera House, Great Barrier Reef, Melbourne, Gold Coast, wildlife, beaches.
 """
 
     try:
@@ -330,7 +424,12 @@ Rules:
         image_query = card.get("image_query", f"{destination} travel")
         card["image"] = search_pexels_image(image_query)
 
-    hero_image = day_cards[0]["image"] if day_cards else search_pexels_image(f"{destination} travel")
+    hero_image = (
+        day_cards[0]["image"]
+        if day_cards
+        else search_pexels_image(f"{destination} travel")
+    )
+
     gallery = [card["image"] for card in day_cards[:3]]
     day_images = [card["image"] for card in day_cards]
 
