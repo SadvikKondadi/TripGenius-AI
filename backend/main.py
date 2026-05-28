@@ -108,6 +108,41 @@ def login_user(data: AuthRequest):
     }
 
 
+@app.post("/reset-password")
+def reset_password(data: AuthRequest):
+    email = data.email.strip().lower()
+    new_password = hash_password(data.password)
+
+    with driver.session() as session:
+        existing = session.run(
+            """
+            MATCH (u:User {email: $email})
+            RETURN u
+            """,
+            email=email,
+        ).single()
+
+        if not existing:
+            return {
+                "success": False,
+                "message": "Email not registered"
+            }
+
+        session.run(
+            """
+            MATCH (u:User {email: $email})
+            SET u.password = $password
+            """,
+            email=email,
+            password=new_password,
+        )
+
+    return {
+        "success": True,
+        "message": "Password reset successful"
+    }
+
+
 def search_pexels_image(query):
     headers = {"Authorization": PEXELS_API_KEY}
 
@@ -237,7 +272,16 @@ def build_fallback_trip(destination, days, budget, food, interests):
     return itinerary, day_cards
 
 
-def save_trip_to_neo4j(destination, days, budget, food, interests, itinerary, day_cards, user_email=None):
+def save_trip_to_neo4j(
+    destination,
+    days,
+    budget,
+    food,
+    interests,
+    itinerary,
+    day_cards,
+    user_email=None,
+):
     search_id = f"{destination}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
     created_at = datetime.now().isoformat()
     interest_list = [i.strip() for i in interests.split(",") if i.strip()]
@@ -335,7 +379,9 @@ def save_trip_to_neo4j(destination, days, budget, food, interests, itinerary, da
 
 @app.get("/")
 def home():
-    return {"message": "AI GraphRAG Travel Planner Backend Running"}
+    return {
+        "message": "AI GraphRAG Travel Planner Backend Running"
+    }
 
 
 @app.post("/plan-trip")

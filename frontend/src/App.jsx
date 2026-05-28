@@ -94,12 +94,6 @@ function Login({ setUser }) {
     }
   };
 
-  const forgotPassword = () => {
-    alert(
-      "Forgot password feature can be connected later using email OTP, Firebase Auth, or password reset link."
-    );
-  };
-
   return (
     <div className="auth-page">
       <div className="auth-card glass">
@@ -128,9 +122,9 @@ function Login({ setUser }) {
           </button>
         </div>
 
-        <p className="forgot-password" onClick={forgotPassword}>
+        <Link className="forgot-password" to="/forgot-password">
           Forgot Password?
-        </p>
+        </Link>
 
         <button onClick={login}>Login</button>
 
@@ -142,7 +136,7 @@ function Login({ setUser }) {
   );
 }
 
-function Register({ setUser }) {
+function Register() {
   const navigate = useNavigate();
 
   const [fullName, setFullName] = useState("");
@@ -209,6 +203,73 @@ function Register({ setUser }) {
 
         <p>
           Already have account? <Link to="/login">Login</Link>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ForgotPassword() {
+  const navigate = useNavigate();
+
+  const [email, setEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  const resetPassword = async () => {
+    if (!email || !newPassword) {
+      return alert("Enter registered email and new password");
+    }
+
+    try {
+      const res = await axios.post(`${BASE_URL}/reset-password`, {
+        email,
+        password: newPassword,
+      });
+
+      if (!res.data.success) {
+        return alert(res.data.message);
+      }
+
+      alert("Password reset successful. Please login.");
+      navigate("/login");
+    } catch (error) {
+      alert("Password reset failed. Backend not reachable.");
+    }
+  };
+
+  return (
+    <div className="auth-page">
+      <div className="auth-card glass">
+        <h1>Reset Password 🔒</h1>
+        <p>Enter your registered email and create a new password.</p>
+
+        <input
+          placeholder="Registered Email"
+          type="email"
+          onChange={(e) => setEmail(e.target.value)}
+        />
+
+        <div className="password-box">
+          <input
+            placeholder="New Password"
+            type={showPassword ? "text" : "password"}
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
+
+          <button
+            type="button"
+            className="eye-btn"
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </button>
+        </div>
+
+        <button onClick={resetPassword}>Reset Password</button>
+
+        <p>
+          Back to <Link to="/login">Login</Link>
         </p>
       </div>
     </div>
@@ -623,7 +684,9 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login setUser={setUser} />} />
 
-        <Route path="/register" element={<Register setUser={setUser} />} />
+        <Route path="/register" element={<Register />} />
+
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         <Route
           path="/"
