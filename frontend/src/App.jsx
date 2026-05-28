@@ -15,7 +15,8 @@ import {
 } from "lucide-react";
 import "./App.css";
 
-const API_URL = "https://tripgenius-ai-backend.onrender.com/plan-trip";
+const BASE_URL = "https://tripgenius-ai-backend.onrender.com";
+const API_URL = `${BASE_URL}/plan-trip`;
 
 const fallbackImages = {
   hero: "https://images.pexels.com/photos/346885/pexels-photo-346885.jpeg",
@@ -63,14 +64,31 @@ function Navbar({ user, setUser }) {
 
 function Login({ setUser }) {
   const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const login = () => {
-    if (!email) return alert("Enter email");
+  const login = async () => {
+    if (!email || !password) {
+      return alert("Enter email and password");
+    }
 
-    localStorage.setItem("travel_user", email);
-    setUser(email);
-    navigate("/");
+    try {
+      const res = await axios.post(`${BASE_URL}/login`, {
+        email,
+        password,
+      });
+
+      if (!res.data.success) {
+        return alert(res.data.message);
+      }
+
+      localStorage.setItem("travel_user", res.data.email);
+      setUser(res.data.email);
+      navigate("/");
+    } catch (error) {
+      alert("Login failed. Backend not reachable.");
+    }
   };
 
   return (
@@ -79,8 +97,16 @@ function Login({ setUser }) {
         <h1>Welcome Back ✈️</h1>
         <p>Your AI travel assistant is ready.</p>
 
-        <input placeholder="Email" onChange={(e) => setEmail(e.target.value)} />
-        <input placeholder="Password" type="password" />
+        <input
+          placeholder="Email"
+          onChange={(e) => setEmail(e.target.value)}
+        />
+
+        <input
+          placeholder="Password"
+          type="password"
+          onChange={(e) => setPassword(e.target.value)}
+        />
 
         <button onClick={login}>Login</button>
 
@@ -94,14 +120,31 @@ function Login({ setUser }) {
 
 function Register({ setUser }) {
   const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const register = () => {
-    if (!email) return alert("Enter email");
+  const register = async () => {
+    if (!email || !password) {
+      return alert("Enter email and password");
+    }
 
-    localStorage.setItem("travel_user", email);
-    setUser(email);
-    navigate("/");
+    try {
+      const res = await axios.post(`${BASE_URL}/register`, {
+        email,
+        password,
+      });
+
+      if (!res.data.success) {
+        return alert(res.data.message);
+      }
+
+      localStorage.setItem("travel_user", res.data.email);
+      setUser(res.data.email);
+      navigate("/");
+    } catch (error) {
+      alert("Registration failed. Backend not reachable.");
+    }
   };
 
   return (
@@ -111,8 +154,17 @@ function Register({ setUser }) {
         <p>Start planning beautiful AI-powered trips.</p>
 
         <input placeholder="Full Name" />
-        <input placeholder="Email" onChange={(e) => setEmail(e.target.value)} />
-        <input placeholder="Password" type="password" />
+
+        <input
+          placeholder="Email"
+          onChange={(e) => setEmail(e.target.value)}
+        />
+
+        <input
+          placeholder="Password"
+          type="password"
+          onChange={(e) => setPassword(e.target.value)}
+        />
 
         <button onClick={register}>Register</button>
 
@@ -211,7 +263,12 @@ function Planner() {
     setDayCards([]);
 
     try {
-      const res = await axios.post(API_URL, form);
+      const currentUser = localStorage.getItem("travel_user");
+
+      const res = await axios.post(API_URL, {
+        ...form,
+        user_email: currentUser,
+      });
 
       setResult(res.data.itinerary || "No itinerary generated.");
       setImages(res.data.images || fallbackImages);
@@ -526,7 +583,6 @@ function App() {
 
       <Routes>
         <Route path="/login" element={<Login setUser={setUser} />} />
-
         <Route path="/register" element={<Register setUser={setUser} />} />
 
         <Route

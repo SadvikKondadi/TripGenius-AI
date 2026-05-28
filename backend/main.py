@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from neo4j import GraphDatabase
 from dotenv import load_dotenv
 import google.generativeai as genai
@@ -7,6 +8,7 @@ import requests
 import os
 import json
 import re
+import hashlib
 from datetime import datetime
 
 load_dotenv()
@@ -30,6 +32,80 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel("gemini-1.5-flash")
 
 PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
+
+
+class AuthRequest(BaseModel):
+    email: str
+    password: str
+
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
+@app.post("/register")
+def register_user(data: AuthRequest):
+    email = data.email.strip().lower()
+    password = hash_password(data.password)
+
+    with driver.session() as session:
+        existing = session.run(
+            "MATCH (u:User {email: $email}) RETURN u",
+            email=email,
+        ).single()
+
+        if existing:
+            return {
+                "success": False,
+                "message": "User already exists"
+            }
+
+        session.run(
+            """
+            CREATE (u:User {
+                email: $email,
+                password: $password,
+                created_at: $created_at
+            })
+            """,
+            email=email,
+            password=password,
+            created_at=datetime.now().isoformat(),
+        )
+
+    return {
+        "success": True,
+        "message": "Registration successful",
+        "email": email
+    }
+
+
+@app.post("/login")
+def login_user(data: AuthRequest):
+    email = data.email.strip().lower()
+    password = hash_password(data.password)
+
+    with driver.session() as session:
+        user = session.run(
+            """
+            MATCH (u:User {email: $email, password: $password})
+            RETURN u
+            """,
+            email=email,
+            password=password,
+        ).single()
+
+        if not user:
+            return {
+                "success": False,
+                "message": "Invalid email or password"
+            }
+
+    return {
+        "success": True,
+        "message": "Login successful",
+        "email": email
+    }
 
 
 def search_pexels_image(query):
@@ -68,7 +144,6 @@ def clean_json_response(text):
 def build_fallback_trip(destination, days, budget, food, interests):
     total_days = int(days) if str(days).isdigit() else 3
     interest_list = [i.strip() for i in interests.split(",") if i.strip()]
-
     day_cards = []
 
     for i in range(1, total_days + 1):
@@ -162,7 +237,7 @@ def build_fallback_trip(destination, days, budget, food, interests):
     return itinerary, day_cards
 
 
-def save_trip_to_neo4j(destination, days, budget, food, interests, itinerary, day_cards):
+def save_trip_to_neo4j(destination, days, budget, food, interests, itinerary, day_cards, user_email=None):
     search_id = f"{destination}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
     created_at = datetime.now().isoformat()
     interest_list = [i.strip() for i in interests.split(",") if i.strip()]
@@ -179,7 +254,8 @@ def save_trip_to_neo4j(destination, days, budget, food, interests, itinerary, da
                 budget: $budget,
                 food: $food,
                 interests: $interests,
-                created_at: $created_at
+                created_at: $created_at,
+                user_email: $user_email
             })
 
             CREATE (plan:Itinerary {
@@ -206,7 +282,19 @@ def save_trip_to_neo4j(destination, days, budget, food, interests, itinerary, da
             interests=interests,
             itinerary=itinerary,
             created_at=created_at,
+            user_email=user_email,
         )
+
+        if user_email:
+            session.run(
+                """
+                MATCH (search:TripSearch {id: $search_id})
+                MERGE (user:User {email: $user_email})
+                MERGE (user)-[:SEARCHED]->(search)
+                """,
+                search_id=search_id,
+                user_email=user_email,
+            )
 
         for interest in interest_list:
             session.run(
@@ -257,6 +345,7 @@ def plan_trip(data: dict):
     budget = data.get("budget", "")
     food = data.get("food", "")
     interests = data.get("interests", "")
+    user_email = data.get("user_email", "")
 
     cypher = """
     MATCH (n)-[:LOCATED_IN]->(c:City)
@@ -379,15 +468,6 @@ Include safety, money saving, local etiquette, and useful apps.
 
 ## Final Estimated Total Cost
 Give approximate total trip spending.
-
-Destination-specific examples:
-- India: Taj Mahal, India Gate, Jaipur, Kerala, Goa, Varanasi depending on interests.
-- Japan: Tokyo, Kyoto, Osaka, Mount Fuji, Hakone, Shibuya, Akihabara, bullet trains.
-- Switzerland: Alps, Interlaken, Lucerne, Zermatt, lakes, scenic trains, snow, hiking.
-- Sri Lanka: Sigiriya, Galle, Ella, Kandy, Mirissa, Yala, tea plantations.
-- Dubai: Burj Khalifa, Desert Safari, Dubai Marina, Palm Jumeirah, Dubai Mall.
-- Thailand: Bangkok, Phuket, Krabi, Chiang Mai, temples, beaches, islands, night markets.
-- Australia: Sydney Opera House, Great Barrier Reef, Melbourne, Gold Coast, wildlife, beaches.
 """
 
     try:
@@ -447,6 +527,7 @@ Destination-specific examples:
         interests=interests,
         itinerary=itinerary,
         day_cards=day_cards,
+        user_email=user_email,
     )
 
     return {
@@ -492,6 +573,7 @@ def search_history():
         s.budget AS budget,
         s.food AS food,
         s.interests AS interests,
+        s.user_email AS user_email,
         s.created_at AS created_at
     ORDER BY s.created_at DESC
     LIMIT 50
