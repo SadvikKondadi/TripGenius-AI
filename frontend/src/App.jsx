@@ -12,6 +12,8 @@ import {
   Save,
   Sparkles,
   Compass,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import "./App.css";
 
@@ -67,6 +69,7 @@ function Login({ setUser }) {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const login = async () => {
     if (!email || !password) {
@@ -91,6 +94,12 @@ function Login({ setUser }) {
     }
   };
 
+  const forgotPassword = () => {
+    alert(
+      "Forgot password feature can be connected later using email OTP, Firebase Auth, or password reset link."
+    );
+  };
+
   return (
     <div className="auth-page">
       <div className="auth-card glass">
@@ -99,14 +108,29 @@ function Login({ setUser }) {
 
         <input
           placeholder="Email"
+          type="email"
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        <input
-          placeholder="Password"
-          type="password"
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <div className="password-box">
+          <input
+            placeholder="Password"
+            type={showPassword ? "text" : "password"}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+
+          <button
+            type="button"
+            className="eye-btn"
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </button>
+        </div>
+
+        <p className="forgot-password" onClick={forgotPassword}>
+          Forgot Password?
+        </p>
 
         <button onClick={login}>Login</button>
 
@@ -121,12 +145,14 @@ function Login({ setUser }) {
 function Register({ setUser }) {
   const navigate = useNavigate();
 
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const register = async () => {
-    if (!email || !password) {
-      return alert("Enter email and password");
+    if (!fullName || !email || !password) {
+      return alert("Enter full name, email, and password");
     }
 
     try {
@@ -139,9 +165,8 @@ function Register({ setUser }) {
         return alert(res.data.message);
       }
 
-      localStorage.setItem("travel_user", res.data.email);
-      setUser(res.data.email);
-      navigate("/");
+      alert("Registration successful. Please login.");
+      navigate("/login");
     } catch (error) {
       alert("Registration failed. Backend not reachable.");
     }
@@ -153,18 +178,32 @@ function Register({ setUser }) {
         <h1>Create Account 🌍</h1>
         <p>Start planning beautiful AI-powered trips.</p>
 
-        <input placeholder="Full Name" />
+        <input
+          placeholder="Full Name"
+          onChange={(e) => setFullName(e.target.value)}
+        />
 
         <input
           placeholder="Email"
+          type="email"
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        <input
-          placeholder="Password"
-          type="password"
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <div className="password-box">
+          <input
+            placeholder="Password"
+            type={showPassword ? "text" : "password"}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+
+          <button
+            type="button"
+            className="eye-btn"
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </button>
+        </div>
 
         <button onClick={register}>Register</button>
 
@@ -583,6 +622,7 @@ function App() {
 
       <Routes>
         <Route path="/login" element={<Login setUser={setUser} />} />
+
         <Route path="/register" element={<Register setUser={setUser} />} />
 
         <Route

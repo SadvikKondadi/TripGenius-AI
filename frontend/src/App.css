@@ -934,3 +934,48 @@ button:hover,
     font-size: 1.2rem;
   }
 }
+.password-box {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.password-box input {
+  flex: 1;
+}
+
+.show-btn {
+  width: auto !important;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #222;
+  color: white;
+  cursor: pointer;
+}
+
+.forgot-password {
+  margin-top: 12px;
+  color: #0077ff;
+  cursor: pointer;
+  text-align: right;
+  font-size: 0.95rem;
+}
+
+
+.eye-btn {
+  position: absolute;
+  right: 12px;
+  background: transparent !important;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  width: auto !important;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eye-btn:hover {
+  color: #000;
+}
