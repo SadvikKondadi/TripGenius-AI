@@ -521,12 +521,21 @@ Give approximate total trip spending.
         response = model.generate_content(prompt)
         print("Gemini response received")
 
-        parsed = json.loads(clean_json_response(response.text))
+        raw_text = clean_json_response(response.text)
 
-        itinerary = parsed.get("itinerary_markdown", "")
-        day_cards = parsed.get("day_cards", [])
+        try:
+            parsed = json.loads(raw_text)
 
-        if not itinerary or not day_cards:
+            itinerary = parsed.get("itinerary_markdown", "")
+            day_cards = parsed.get("day_cards", [])
+
+            if not itinerary or not day_cards:
+                raise Exception("Empty itinerary or day cards")
+
+        except Exception as json_error:
+            print("JSON Parse Error:", json_error)
+            print("Raw Gemini Output:", raw_text)
+
             itinerary, day_cards = build_fallback_trip(
                 destination,
                 days,
@@ -545,6 +554,7 @@ Give approximate total trip spending.
             food,
             interests,
         )
+    
 
     for card in day_cards:
         image_query = card.get("image_query", f"{destination} travel")
