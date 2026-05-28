@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import "./App.css";
 
+const API_URL = "https://tripgenius-ai-backend.onrender.com/plan-trip";
+
 const fallbackImages = {
   hero: "https://images.pexels.com/photos/346885/pexels-photo-346885.jpeg",
   gallery: [
@@ -65,6 +67,7 @@ function Login({ setUser }) {
 
   const login = () => {
     if (!email) return alert("Enter email");
+
     localStorage.setItem("travel_user", email);
     setUser(email);
     navigate("/");
@@ -95,6 +98,7 @@ function Register({ setUser }) {
 
   const register = () => {
     if (!email) return alert("Enter email");
+
     localStorage.setItem("travel_user", email);
     setUser(email);
     navigate("/");
@@ -160,7 +164,7 @@ function Dashboard({ user }) {
         <div className="feature-card">
           <Save />
           <h3>Saved Trips</h3>
-          <p>Save and view your travel history.</p>
+          <p>Saved trips are private for each login.</p>
         </div>
       </div>
 
@@ -171,11 +175,12 @@ function Dashboard({ user }) {
 
 function Planner() {
   const [form, setForm] = useState({
-    destination: "India",
+    destination: "Australia",
     days: "5",
-    budget: "$1200",
-    food: "Indian food",
-    interests: "beaches, temples, wildlife, tea plantations, culture",
+    budget: "$1800",
+    food: "Australian and Indian food",
+    interests:
+      "beaches, wildlife, road trips, surfing, opera house, reefs, nightlife",
   });
 
   const [loading, setLoading] = useState(false);
@@ -206,7 +211,7 @@ function Planner() {
     setDayCards([]);
 
     try {
-      const res = await axios.post("https://tripgenius-ai-backend.onrender.com/plan-trip", form);
+      const res = await axios.post(API_URL, form);
 
       setResult(res.data.itinerary || "No itinerary generated.");
       setImages(res.data.images || fallbackImages);
@@ -220,7 +225,10 @@ function Planner() {
   };
 
   const saveTrip = () => {
-    const trips = JSON.parse(localStorage.getItem("saved_trips")) || [];
+    const currentUser = localStorage.getItem("travel_user");
+
+    const trips =
+      JSON.parse(localStorage.getItem(`saved_trips_${currentUser}`)) || [];
 
     trips.push({
       ...form,
@@ -230,7 +238,8 @@ function Planner() {
       date: new Date().toLocaleString(),
     });
 
-    localStorage.setItem("saved_trips", JSON.stringify(trips));
+    localStorage.setItem(`saved_trips_${currentUser}`, JSON.stringify(trips));
+
     alert("Trip saved successfully!");
   };
 
@@ -249,7 +258,11 @@ function Planner() {
 
       <div className="image-strip">
         {images.gallery.map((img, index) => (
-          <img src={img} alt={`${form.destination} gallery ${index + 1}`} key={index} />
+          <img
+            src={img}
+            alt={`${form.destination} gallery ${index + 1}`}
+            key={index}
+          />
         ))}
       </div>
 
@@ -421,14 +434,18 @@ function Planner() {
 }
 
 function SavedTrips() {
+  const currentUser = localStorage.getItem("travel_user");
+
   const [trips, setTrips] = useState(
-    JSON.parse(localStorage.getItem("saved_trips")) || []
+    JSON.parse(localStorage.getItem(`saved_trips_${currentUser}`)) || []
   );
 
   const deleteTrip = (index) => {
     const updated = trips.filter((_, i) => i !== index);
+
     setTrips(updated);
-    localStorage.setItem("saved_trips", JSON.stringify(updated));
+
+    localStorage.setItem(`saved_trips_${currentUser}`, JSON.stringify(updated));
   };
 
   return (
