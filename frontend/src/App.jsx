@@ -206,7 +206,7 @@ function Planner() {
     setDayCards([]);
 
     try {
-      const res = await axios.post("http://127.0.0.1:8000/plan-trip", form);
+      const res = await axios.post("https://tripgenius-ai-backend.onrender.com/plan-trip", form);
 
       setResult(res.data.itinerary || "No itinerary generated.");
       setImages(res.data.images || fallbackImages);
