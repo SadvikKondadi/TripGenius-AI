@@ -187,20 +187,6 @@ Deployed using:
 
 ---
 
-# 📸 Screenshots
-
-## AI Travel Planner
-- Dynamic itinerary generation
-- Smart destination recommendations
-- Responsive UI
-
-## Neo4j Graph Visualization
-- Trip graph relationships
-- Stored search history
-- Dynamic graph database structure
-
----
-
 # 🌟 Example Destinations Tested
 
 - Japan 🇯🇵
